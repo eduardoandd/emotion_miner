@@ -1,24 +1,6 @@
 import unicodedata
 import nltk
 
-# ====================== TRATAMENTO DE STOP WORDS ======================
-def remover_acentos(texto):
-    texto_normalizado=unicodedata.normalize('NFD', texto)
-
-    texto_sem_acentos=''.join(char for char in texto_normalizado if unicodedata.category(char) !='Mn')
-
-    return texto_sem_acentos
-
-def remove_stop_words(texto):
-    frases=[]
-
-    for palavra,emocao in texto:
-
-        sem_stop_words= [p for p in palavra.split() if not p in stop_word_nltk]
-        frases.append((sem_stop_words,emocao))
-
-    return frases
-
 base=[
     ('eu sou admirada por muitos','alegria'),
     ('me sinto completamente amado','alegria'),
@@ -41,17 +23,28 @@ base=[
    ('eu tenho muito medo dele', 'medo'),
    ('estou com medo do resultado dos meus testes', 'medo')
 ]
+def remover_acentos(texto):
+    texto_normalizado=unicodedata.normalize('NFD', texto)
+
+    texto_sem_acentos=''.join(char for char in texto_normalizado if unicodedata.category(char) !='Mn')
+
+    return texto_sem_acentos
 base=[(remover_acentos(texto),emocao) for texto,emocao in base]
 
-stop_words = ['a', 'agora', 'algum', 'alguma', 'aquele', 'aqueles', 'de', 'deu', 'do', 'e', 'estou', 'esta', 'esta',
-             'ir', 'meu', 'muito', 'mesmo', 'no', 'nossa', 'o', 'outro', 'para', 'que', 'sem', 'talvez', 'tem', 'tendo',
-             'tenha', 'teve', 'tive', 'todo', 'um', 'uma', 'umas', 'uns', 'vou']
+# ====================== TRATAMENTO DE STOP WORDS ======================
 stop_word_nltk=nltk.corpus.stopwords.words('portuguese')
+def remove_stop_words(texto):
+    frases=[]
 
+    for palavra,emocao in texto:
+
+        sem_stop_words= [p for p in palavra.split() if not p in stop_word_nltk]
+        frases.append((sem_stop_words,emocao))
+
+    return frases
 remove_stop_words(base)
 
 # ====================== EXTRAÇÃO DE RADICAL DAS PALAVRAS (STEMMING) ======================
-
 def aplica_stremmer(texto):
     stemmer=nltk.stem.RSLPStemmer()
     frases_stemming=[]
@@ -60,5 +53,33 @@ def aplica_stremmer(texto):
         com_stemming=[str(stemmer.stem(p)) for p in palavra.split() if p not in stop_word_nltk]
         frases_stemming.append((com_stemming,emocao))
     return frases_stemming
+frases_com_stemming=aplica_stremmer(base)
 
-frases_com_stemmer=aplica_stremmer(base)
+# ====================== LISTAGEM DAS PALAVRAS COM STEMMING ======================
+def listagem_palavras_st(palavras):
+    lista_palavras=[]
+    for (palavra,emocao) in palavras:
+        lista_palavras.extend(palavra)
+    return lista_palavras
+palavras=listagem_palavras_st(frases_com_stemming)
+
+# ====================== EXTRAÇÃO DE PALAVRAS ÚNICAS ======================
+def busca_freq(palavras):
+    palavras=nltk.FreqDist(palavras)
+    return palavras
+frequencia=busca_freq(palavras)
+
+def busca_palavra_unica(frequencia):
+    palavras_unicas=frequencia.keys()
+    return palavras_unicas
+palavras_unicas=busca_palavra_unica(frequencia)
+
+def extrator_palavras(palavras):
+    doc=set(palavras)
+    caracteristicas={}  
+    for palavra in palavras_unicas:
+        caracteristicas['%s' % palavra] = (palavra in doc)
+    return caracteristicas
+caracteristicas_frase=extrator_palavras(['am','nov','dia'])
+
+basecompleta=nltk.classify.apply_features(extrator_palavras,frases_com_stemming)
